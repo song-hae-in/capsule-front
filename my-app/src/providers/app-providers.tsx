@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { WagmiProvider } from 'wagmi';
+import { Toaster } from '@/components/ui/sonner';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { wagmiConfig } from '../config/wagmi';
 import { AlertProvider } from './alert-provider';
 import { WalletProvider } from './wallet-provider';
@@ -20,7 +22,12 @@ export function AppProviders({ children }: AppProvidersProps) {
     <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <WalletProvider>
-          <AlertProvider>{children}</AlertProvider>
+          <TooltipProvider>
+            <AlertProvider>
+              {children}
+              <Toaster position="top-right" richColors closeButton />
+            </AlertProvider>
+          </TooltipProvider>
         </WalletProvider>
       </QueryClientProvider>
     </WagmiProvider>
