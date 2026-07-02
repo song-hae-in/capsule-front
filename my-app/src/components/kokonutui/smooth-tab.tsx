@@ -137,10 +137,13 @@ interface SmoothTabProps {
   className?: string;
   cardClassName?: string;
   activeColor?: string;
+  variant?: "default" | "wizard";
   indicator?: "tabs" | "dots";
   footer?: React.ReactNode;
   onChange?: (tabId: string) => void;
   onValueChange?: (tabId: string) => void;
+  isTabEnabled?: (tabId: string, index: number) => boolean;
+  /** @deprecated Use isTabEnabled */
   isDotEnabled?: (tabId: string, index: number) => boolean;
 }
 
@@ -180,12 +183,15 @@ export default function SmoothTab({
   className,
   cardClassName,
   activeColor = "bg-[#1F9CFE]",
+  variant = "default",
   indicator = "tabs",
   footer,
   onChange,
   onValueChange,
+  isTabEnabled,
   isDotEnabled,
 }: SmoothTabProps) {
+  const canSelectTab = isTabEnabled ?? isDotEnabled;
   const [internalSelected, setInternalSelected] = React.useState<string>(defaultTabId);
   const selected = value ?? internalSelected;
   const [direction, setDirection] = React.useState(0);
@@ -205,6 +211,18 @@ export default function SmoothTab({
   // Reference for the selected button
   const buttonRefs = React.useRef<Map<string, HTMLButtonElement>>(new Map());
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const previousValueRef = React.useRef(value ?? defaultTabId);
+
+  React.useEffect(() => {
+    if (!value || value === previousValueRef.current) return;
+
+    const newIndex = items.findIndex((item) => item.id === value);
+    const oldIndex = items.findIndex((item) => item.id === previousValueRef.current);
+    if (newIndex !== -1 && oldIndex !== -1 && newIndex !== oldIndex) {
+      setDirection(newIndex > oldIndex ? 1 : -1);
+    }
+    previousValueRef.current = value;
+  }, [items, value]);
 
   // Update dimensions whenever selected tab changes or on mount
   React.useLayoutEffect(() => {
@@ -238,7 +256,7 @@ export default function SmoothTab({
   const handleTabClick = (tabId: string) => {
     const currentIndex = items.findIndex((item) => item.id === selected);
     const newIndex = items.findIndex((item) => item.id === tabId);
-    if (indicator === "dots" && isDotEnabled && !isDotEnabled(tabId, newIndex)) {
+    if (canSelectTab && !canSelectTab(tabId, newIndex)) {
       return;
     }
     setDirection(newIndex > currentIndex ? 1 : -1);
@@ -257,7 +275,7 @@ export default function SmoothTab({
 
   const selectedItem = items.find((item) => item.id === selected);
   const selectedIndex = items.findIndex((item) => item.id === selected);
-  const isWizardLayout = indicator === "dots";
+  const isWizardLayout = variant === "wizard";
 
   const stepContent =
     selectedItem?.cardContent ??
@@ -349,7 +367,7 @@ export default function SmoothTab({
         >
           {items.map((item, index) => {
             const isSelected = selected === item.id;
-            const isEnabled = isDotEnabled ? isDotEnabled(item.id, index) : true;
+            const isEnabled = canSelectTab ? canSelectTab(item.id, index) : true;
             const isComplete = index < selectedIndex;
 
             return (
@@ -381,7 +399,7 @@ export default function SmoothTab({
           aria-label="Smooth tabs"
           className={cn(
             "relative mt-auto flex items-center justify-between gap-1 py-1",
-            "mx-auto w-full max-w-[400px] bg-background",
+            isWizardLayout ? "w-full bg-background" : "mx-auto w-full max-w-[400px] bg-background",
             "rounded-xl border",
             "transition-all duration-200",
             className,
@@ -412,21 +430,25 @@ export default function SmoothTab({
             className="relative z-[2] grid w-full gap-1"
             style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
           >
-            {items.map((item) => {
+            {items.map((item, index) => {
               const isSelected = selected === item.id;
+              const isEnabled = canSelectTab ? canSelectTab(item.id, index) : true;
               return (
                 <motion.button
                   aria-controls={`panel-${item.id}`}
                   aria-selected={isSelected}
                   className={cn(
                     "relative flex items-center justify-center gap-0.5 rounded-lg px-2 py-1.5",
-                    "font-medium text-sm transition-all duration-300",
+                    isWizardLayout ? "px-1 py-1.5 text-xs" : "font-medium text-sm",
+                    "transition-all duration-300",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     "truncate",
                     isSelected
                       ? "text-white"
                       : "text-muted-foreground hover:bg-muted/50 hover:text-foreground",
+                    !isEnabled && "pointer-events-none opacity-40",
                   )}
+                  disabled={!isEnabled}
                   id={`tab-${item.id}`}
                   key={item.id}
                   onClick={() => handleTabClick(item.id)}

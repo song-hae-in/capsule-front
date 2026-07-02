@@ -80,6 +80,7 @@ type ReviewSealStepProps = {
   onRetryBlockchain: () => void;
   onRetryMetadata: () => void;
   onRetryFile: (id: string) => void;
+  embedded?: boolean;
   className?: string;
 };
 
@@ -94,6 +95,7 @@ export default function ReviewSealStep({
   onRetryBlockchain,
   onRetryMetadata,
   onRetryFile,
+  embedded = false,
   className,
 }: ReviewSealStepProps) {
   const { isConnected } = useWallet();
@@ -106,9 +108,11 @@ export default function ReviewSealStep({
   const canSeal = files.length > 0 && isConnected && !isSealing && !isSealed;
 
   return (
-    <section className={cn('space-y-4', className)}>
+    <section className={cn('space-y-4', embedded && 'p-4 sm:p-6', className)}>
       <div>
-        <h2 className="font-display text-xl font-semibold tracking-tight">Review & Seal</h2>
+        <h2 className="font-display text-xl font-semibold tracking-tight">
+          {embedded ? 'Review & Seal Capsule' : 'Review & Seal'}
+        </h2>
         <p className="mt-1 text-muted-foreground text-sm">
           Confirm your capsule, then encrypt, upload to IPFS, and record on-chain.
         </p>

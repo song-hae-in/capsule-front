@@ -10,9 +10,10 @@
 
 ```
 Step 1  Add Memories        → 로컬 버퍼에 파일 보관 (IPFS X)
-Step 2  Choose Design       → 캡슐 외형 선택
-Step 3  Set Seal            → unlock date · visibility · encryption
-Step 4  Review & Seal       → 암호화 · IPFS · MetaMask · 온체인 Seal
+Step 2  Set Unlock Date     → unlock date · visibility · encryption
+Step 3  Choose Design       → 캡슐 외형 선택
+Step 4  Validate            → 사전 검증 체크리스트
+Step 5  Review & Seal       → 암호화 · IPFS · MetaMask · 온체인 Seal
 ```
 
 **핵심 원칙**
@@ -166,9 +167,10 @@ status: ready_to_seal (progress bar 없음)
 - [x] Retry blockchain record / metadata pin
 
 ### 위저드
-- [ ] 4스텝 위저드 네비게이션
-- [x] `use-create-capsule` hook (Step 1 + Step 4 연동)
-- [ ] Step 2 design · Step 3 unlock rule UI
+- [x] 5스텝 위저드 (`create-capsule-wizard` + Kokonut `smooth-tab` dots)
+- [x] `use-create-capsule` + `use-create-capsule-wizard`
+- [x] Step 1 Add Memories · Step 5 Review & Seal
+- [ ] Step 2 Set Unlock Date · Step 3 Choose Design · Step 4 Validate (scaffold)
 
 ---
 
