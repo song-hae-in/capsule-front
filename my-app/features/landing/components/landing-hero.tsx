@@ -1,8 +1,12 @@
 import { Canvas, useFrame } from '@react-three/fiber';
 import { useAspect, useTexture } from '@react-three/drei';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import * as THREE from 'three';
 import type { Mesh } from 'three';
+import { useWallet } from '@/hooks/use-wallet';
+import { CREATE_CAPSULE_PATH } from '@/routes';
 
 import textureUrl from '../assets/landing-texture.png';
 import depthUrl from '../assets/landing-depth.png';
@@ -28,9 +32,13 @@ function LandingHeroMesh({
 
   useEffect(() => {
     if (rawMap && depthMap) {
-      rawMap.colorSpace = THREE.SRGBColorSpace;
+      // drei가 캐시된 텍스처를 새 Canvas에 재업로드할 때 sRGB 디코드가 적용되어
+      // 재방문 시 어두워지는 문제 방지 — 항상 NoColorSpace로 고정하고 재업로드 강제
+      rawMap.colorSpace = THREE.NoColorSpace;
       rawMap.premultiplyAlpha = false;
+      rawMap.needsUpdate = true;
       depthMap.colorSpace = THREE.NoColorSpace;
+      depthMap.needsUpdate = true;
       setVisible(true);
     }
   }, [rawMap, depthMap]);
@@ -132,6 +140,22 @@ export default function LandingHero({
   scaleFactor = 0.32,
   className = '',
 }: LandingHeroProps) {
+  const navigate = useNavigate();
+  const { isConnected, connect, isConnecting } = useWallet();
+
+  const handleStartCapsule = async () => {
+    if (isConnected) {
+      navigate(CREATE_CAPSULE_PATH);
+      return;
+    }
+
+    toast.error('Connect your wallet to create a capsule');
+    const ok = await connect();
+    if (ok) {
+      navigate(CREATE_CAPSULE_PATH);
+    }
+  };
+
   return (
     <section className={`landing-hero relative h-svh w-full overflow-hidden bg-background ${className}`}>
       <div className="pointer-events-none absolute inset-0 z-50">
@@ -155,9 +179,11 @@ export default function LandingHero({
         <div className="pointer-events-auto flex flex-col items-center justify-center gap-2 sm:flex-row sm:gap-3">
           <button
             type="button"
-            className="w-full rounded-full bg-primary px-6 py-3 text-primary-foreground shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl sm:w-auto"
+            className="w-full rounded-full bg-primary px-6 py-3 text-primary-foreground shadow-lg transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-xl disabled:opacity-50 sm:w-auto"
+            disabled={isConnecting}
+            onClick={() => void handleStartCapsule()}
           >
-            Start Your Capsule
+            {isConnecting ? 'Connecting…' : 'Start Your Capsule'}
           </button>
           <button
             type="button"

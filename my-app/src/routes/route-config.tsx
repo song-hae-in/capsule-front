@@ -1,8 +1,11 @@
 import type { RouteObject } from 'react-router-dom';
+import RequireWallet from '../../features/capsules/components/require-wallet';
 import CreateCapsulePage from '../../features/capsules/pages/create-capsule-page';
 import ListCapsulePage from '../../features/capsules/pages/list-capsule-page';
 import LandingPage from '../../features/landing/pages/landing-page';
 import type { AppRouteConfig, NavItem } from './types';
+
+export const CREATE_CAPSULE_PATH = '/capsules/create';
 
 /**
  * 앱 route + nav 단일 설정.
@@ -16,11 +19,15 @@ export const APP_ROUTES: AppRouteConfig[] = [
     showInNav: false,
   },
   {
-    path: '/capsules/create',
+    path: CREATE_CAPSULE_PATH,
     label: 'Create',
     description: 'New capsule',
     navInfo: '메시지와 공개 시각을 설정해 타임캡슐을 생성합니다.',
-    element: <CreateCapsulePage />,
+    element: (
+      <RequireWallet>
+        <CreateCapsulePage />
+      </RequireWallet>
+    ),
     showInNav: true,
   },
   {

@@ -1,8 +1,10 @@
 import { Home, List, PlusCircle, type LucideIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import ActionSearchBar, { type NavAction } from '@/components/kokonutui/action-search-bar';
-import { getNavItems } from '../../../src/routes';
+import { useWallet } from '@/hooks/use-wallet';
+import { CREATE_CAPSULE_PATH, getNavItems } from '../../../src/routes';
 
 const NAV_ICON_MAP: Record<string, LucideIcon> = {
   Create: PlusCircle,
@@ -20,6 +22,7 @@ type NavActionSearchProps = {
 export default function NavActionSearch({ className = '', onNavigate }: NavActionSearchProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { isConnected } = useWallet();
   const navItems = getNavItems();
 
   const actions = useMemo<NavAction[]>(
@@ -49,10 +52,17 @@ export default function NavActionSearch({ className = '', onNavigate }: NavActio
     : Home;
 
   const handleSelect = (action: NavAction) => {
-    if (action.href) {
-      navigate(action.href);
-      onNavigate?.();
+    if (!action.href) return;
+
+    // 라우트 이동 후 RequireWallet이 되돌리면 현재 페이지가 재마운트되므로
+    // (랜딩 3D 재로딩 등) 이동 자체를 여기서 차단한다.
+    if (action.href === CREATE_CAPSULE_PATH && !isConnected) {
+      toast.error('Connect your wallet to create a capsule', { id: 'require-wallet' });
+      return;
     }
+
+    navigate(action.href);
+    onNavigate?.();
   };
 
   return (
