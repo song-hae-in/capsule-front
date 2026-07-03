@@ -30,17 +30,18 @@ export default function CreateCapsuleWizard({ capsule }: CreateCapsuleWizardProp
     retryBlockchainRecord,
     retryMetadataPin,
     retryUpload,
+    setUnlock,
   } = capsule;
 
-  const wizard = useCreateCapsuleWizard({ files, isSealLocked });
+  const wizard = useCreateCapsuleWizard({ files, unlock, isSealLocked });
   const {
     currentStepId,
-    maxReachedStep,
     isFirstStep,
     isLastStep,
     goNext,
     goBack,
     goToStepId,
+    canAccessStep,
     canProceedFromStep,
   } = wizard;
 
@@ -65,6 +66,7 @@ export default function CreateCapsuleWizard({ capsule }: CreateCapsuleWizardProp
           retryBlockchainRecord,
           retryMetadataPin,
           retryUpload,
+          setUnlock,
         }),
       })),
     [
@@ -79,6 +81,7 @@ export default function CreateCapsuleWizard({ capsule }: CreateCapsuleWizardProp
       retryMetadataPin,
       retryUpload,
       sealCapsule,
+      setUnlock,
       totalBytes,
       unlock,
     ],
@@ -112,7 +115,7 @@ export default function CreateCapsuleWizard({ capsule }: CreateCapsuleWizardProp
         </div>
       }
       indicator="tabs"
-      isTabEnabled={(_tabId, index) => index <= maxReachedStep}
+      isTabEnabled={(_tabId, index) => canAccessStep(index)}
       items={tabItems}
       onValueChange={(stepId) => goToStepId(stepId as WizardStepId)}
       value={currentStepId}
@@ -135,6 +138,7 @@ type StepRenderContext = {
   retryBlockchainRecord: ReturnType<typeof useCreateCapsule>['retryBlockchainRecord'];
   retryMetadataPin: ReturnType<typeof useCreateCapsule>['retryMetadataPin'];
   retryUpload: ReturnType<typeof useCreateCapsule>['retryUpload'];
+  setUnlock: ReturnType<typeof useCreateCapsule>['setUnlock'];
 };
 
 function renderStepContent(stepId: WizardStepId, ctx: StepRenderContext) {
@@ -149,7 +153,13 @@ function renderStepContent(stepId: WizardStepId, ctx: StepRenderContext) {
         />
       );
     case 'unlock':
-      return <SetUnlockDateStep />;
+      return (
+        <SetUnlockDateStep
+          unlock={ctx.unlock}
+          onUnlockChange={ctx.setUnlock}
+          disabled={ctx.isSealLocked}
+        />
+      );
     case 'design':
       return <ChooseDesignStep />;
     case 'validate':

@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/card';
 import { useWallet } from '@/hooks/use-wallet';
 import { cn } from '@/lib/utils';
+import { formatUnlockDisplay } from '../../lib/unlock-date';
 import {
   CAPSULE_DESIGN_LABELS,
   type BufferIpfsStatus,
@@ -61,12 +62,9 @@ function ReviewRow({ label, value }: ReviewRowProps) {
 }
 
 function formatUnlockSummary(unlock: UnlockRule): string {
-  const parts = [
-    unlock.visibility === 'public' ? 'Public' : 'Private',
-    unlock.encrypted ? 'Encrypted' : 'Not encrypted',
-  ];
-  if (unlock.unlockAt) parts.push(`Unlocks ${new Date(unlock.unlockAt).toLocaleString()}`);
-  return parts.join(' · ');
+  if (!unlock.unlockAt) return 'Not set';
+  const label = formatUnlockDisplay(unlock.unlockAt);
+  return unlock.unlockConfirmed ? `${label} (confirmed)` : label;
 }
 
 type ReviewSealStepProps = {
@@ -127,7 +125,7 @@ export default function ReviewSealStep({
           <ReviewRow label="Memories" value={`${files.length} file${files.length === 1 ? '' : 's'}`} />
           <ReviewRow label="Total size" value={formatFileSize(totalBytes)} />
           <ReviewRow label="Design" value={CAPSULE_DESIGN_LABELS[design]} />
-          <ReviewRow label="Seal rules" value={formatUnlockSummary(unlock)} />
+          <ReviewRow label="Unlock date" value={formatUnlockSummary(unlock)} />
           <ReviewRow label="Storage" value="IPFS" />
         </CardContent>
       </Card>

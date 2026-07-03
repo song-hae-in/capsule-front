@@ -8,13 +8,13 @@ import {
 } from '../lib/mock-seal-pipeline';
 import {
   DEFAULT_CAPSULE_DESIGN,
-  DEFAULT_UNLOCK_RULE,
   INITIAL_CAPSULE_BUFFER,
   type CapsuleBuffer,
   type CapsuleDesignId,
   type CapsuleMetadataPayload,
   type UnlockRule,
 } from '../types/create-capsule';
+import { createDefaultUnlockRule } from '../lib/unlock-date';
 import type { MemoryFile } from '../types/memory-upload';
 import { type FileCidRef, useMemoryFiles } from './use-memory-files';
 
@@ -41,7 +41,7 @@ export function useCreateCapsule() {
 
   const [buffer, setBuffer] = useState<CapsuleBuffer>(INITIAL_CAPSULE_BUFFER);
   const [design, setDesign] = useState<CapsuleDesignId>(DEFAULT_CAPSULE_DESIGN);
-  const [unlock, setUnlock] = useState<UnlockRule>(DEFAULT_UNLOCK_RULE);
+  const [unlock, setUnlock] = useState<UnlockRule>(createDefaultUnlockRule);
   const [isSealing, setIsSealing] = useState(false);
 
   const totalBytes = files.reduce((sum, item) => sum + item.file.size, 0);

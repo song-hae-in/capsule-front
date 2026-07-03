@@ -45,6 +45,8 @@ export const CAPSULE_DESIGN_LABELS: Record<CapsuleDesignId, string> = {
 
 export type UnlockRule = {
   unlockAt?: string;
+  /** User explicitly confirmed unlock date/time on Step 2 */
+  unlockConfirmed?: boolean;
   allowedWallet?: `0x${string}`;
   secretCode?: string;
   visibility: 'public' | 'private';

@@ -1,4 +1,5 @@
 import { WizardScaffoldCard, WizardStepShell } from './wizard-step-shell';
+import { formatUnlockDisplay } from '../../lib/unlock-date';
 import { CAPSULE_DESIGN_LABELS, type CapsuleDesignId, type UnlockRule } from '../../types/create-capsule';
 import { formatFileSize, type MemoryFile } from '../../types/memory-upload';
 
@@ -20,7 +21,7 @@ export default function ValidateStep({ files, totalBytes, design, unlock }: Vali
         items={[
           `${files.length} memor${files.length === 1 ? 'y' : 'ies'} · ${formatFileSize(totalBytes)} total`,
           `Design: ${CAPSULE_DESIGN_LABELS[design]}`,
-          `Visibility: ${unlock.visibility}${unlock.encrypted ? ' · encrypted' : ''}`,
+          `Unlock: ${formatUnlockDisplay(unlock.unlockAt)}${unlock.unlockConfirmed ? ' · confirmed' : ' · not confirmed'}`,
           'Wallet connected',
           'Ready for IPFS + on-chain seal',
         ]}

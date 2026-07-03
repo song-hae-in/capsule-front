@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import {
   WIZARD_STEP_IDS,
@@ -6,14 +6,32 @@ import {
   wizardStepIndex,
   type WizardStepId,
 } from '../constants/wizard-steps';
+import { isUnlockInFuture } from '../lib/unlock-date';
+import type { UnlockRule } from '../types/create-capsule';
 import type { MemoryFile } from '../types/memory-upload';
+
+const UNLOCK_STEP_INDEX = wizardStepIndex('unlock');
 
 type UseCreateCapsuleWizardOptions = {
   files: MemoryFile[];
+  unlock: UnlockRule;
   isSealLocked: boolean;
 };
 
-export function useCreateCapsuleWizard({ files, isSealLocked }: UseCreateCapsuleWizardOptions) {
+function stepBlockedMessage(stepId: WizardStepId, unlock: UnlockRule): string | null {
+  if (stepId === 'memories') return 'Add at least one memory to continue';
+  if (stepId === 'unlock') {
+    if (!isUnlockInFuture(unlock.unlockAt)) return 'Unlock date must be in the future';
+    if (!unlock.unlockConfirmed) return 'Confirm your unlock date to continue';
+  }
+  return null;
+}
+
+export function useCreateCapsuleWizard({
+  files,
+  unlock,
+  isSealLocked,
+}: UseCreateCapsuleWizardOptions) {
   const [stepIndex, setStepIndex] = useState(0);
   const [maxReachedStep, setMaxReachedStep] = useState(0);
 
@@ -25,20 +43,49 @@ export function useCreateCapsuleWizard({ files, isSealLocked }: UseCreateCapsule
     (index: number) => {
       const stepId = wizardStepIdAt(index);
       if (stepId === 'memories') return files.length > 0;
+      if (stepId === 'unlock') {
+        return isUnlockInFuture(unlock.unlockAt) && unlock.unlockConfirmed === true;
+      }
       return true;
     },
-    [files.length],
+    [files.length, unlock.unlockAt, unlock.unlockConfirmed],
+  );
+
+  useEffect(() => {
+    if (!unlock.unlockConfirmed) {
+      setMaxReachedStep((prev) => Math.min(prev, UNLOCK_STEP_INDEX));
+    }
+  }, [unlock.unlockConfirmed]);
+
+  const canAccessStep = useCallback(
+    (targetIndex: number) => {
+      if (targetIndex < 0 || targetIndex >= WIZARD_STEP_IDS.length) return false;
+      if (targetIndex <= stepIndex) return true;
+      if (targetIndex > maxReachedStep) return false;
+      return canProceedFromStep(stepIndex);
+    },
+    [canProceedFromStep, maxReachedStep, stepIndex],
+  );
+
+  const notifyStepBlocked = useCallback(
+    (index: number) => {
+      const message = stepBlockedMessage(wizardStepIdAt(index), unlock);
+      if (message) toast.error(message);
+    },
+    [unlock],
   );
 
   const goToStep = useCallback(
     (targetIndex: number) => {
       if (isSealLocked && targetIndex < stepIndex) return;
-      if (targetIndex < 0 || targetIndex >= WIZARD_STEP_IDS.length) return;
-      if (targetIndex > maxReachedStep) return;
+      if (!canAccessStep(targetIndex)) {
+        if (targetIndex > stepIndex) notifyStepBlocked(stepIndex);
+        return;
+      }
 
       setStepIndex(targetIndex);
     },
-    [isSealLocked, maxReachedStep, stepIndex],
+    [canAccessStep, isSealLocked, notifyStepBlocked, stepIndex],
   );
 
   const goToStepId = useCallback(
@@ -50,9 +97,7 @@ export function useCreateCapsuleWizard({ files, isSealLocked }: UseCreateCapsule
 
   const goNext = useCallback(() => {
     if (!canProceedFromStep(stepIndex)) {
-      if (wizardStepIdAt(stepIndex) === 'memories') {
-        toast.error('Add at least one memory to continue');
-      }
+      notifyStepBlocked(stepIndex);
       return;
     }
 
@@ -61,7 +106,7 @@ export function useCreateCapsuleWizard({ files, isSealLocked }: UseCreateCapsule
     const nextIndex = stepIndex + 1;
     setStepIndex(nextIndex);
     setMaxReachedStep((prev) => Math.max(prev, nextIndex));
-  }, [canProceedFromStep, isLastStep, stepIndex]);
+  }, [canProceedFromStep, isLastStep, notifyStepBlocked, stepIndex]);
 
   const goBack = useCallback(() => {
     if (isFirstStep || isSealLocked) return;
@@ -78,6 +123,7 @@ export function useCreateCapsuleWizard({ files, isSealLocked }: UseCreateCapsule
     goBack,
     goToStep,
     goToStepId,
+    canAccessStep,
     canProceedFromStep: canProceedFromStep(stepIndex),
   };
 }
