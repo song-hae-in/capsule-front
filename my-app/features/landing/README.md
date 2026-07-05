@@ -32,7 +32,8 @@ src/router.tsx  →  AppLayout (layout)  →  pages/landing-page.tsx  →  Landi
 | `src/providers/` | 지갑 등 전역 상태 — `main.tsx`에서 마운트 |
 | `pages/landing-page.tsx` | `LandingHero` 렌더 |
 
-**버튼 클릭 이동** → `landing-hero.tsx` 버튼에 `Link` 또는 `useNavigate` 연결 (다음 작업)
+**Start Your Capsule** — 지갑 연결됨: `/capsules/create`로 이동 · 미연결: toast 후 `connect()` 성공 시 이동.
+미연결 상태에서 라우트 이동을 먼저 하지 않는 이유: `RequireWallet`이 되돌리면 랜딩이 재마운트되어 3D가 재로딩되기 때문.
 
 ---
 
@@ -52,7 +53,8 @@ src/router.tsx  →  AppLayout (layout)  →  pages/landing-page.tsx  →  Landi
 
 - 3D 뎁스 씬 (React Three Fiber)
 - 제목·부제 (이미지 중앙 오버레이)
-- CTA 버튼 (하단)
+- CTA 버튼 (하단) — `useWallet` + `useNavigate`로 Create 이동 (위 참고)
+- 텍스처는 `THREE.NoColorSpace` 강제 — 라우트 이동 후 재방문 시 어두워지는 현상 방지
 
 **주요 props**
 
@@ -70,7 +72,7 @@ src/router.tsx  →  AppLayout (layout)  →  pages/landing-page.tsx  →  Landi
 | 이미지 교체 | `assets/landing-texture.png`, `assets/landing-depth.png` (Vite import — `public/` 아님) |
 | 카피·버튼 문구 | `landing-hero.tsx` JSX |
 | 오브젝트 크기 | `scaleFactor` prop |
-| 버튼 라우팅 | `landing-hero.tsx` 버튼 → `react-router-dom` `Link` |
+| 버튼 라우팅 | `landing-hero.tsx` `handleStartCapsule` (지갑 가드 포함) |
 
 **폰트** — `index.html` / `src/index.css`  
 - 제목: Syne (`font-display`)  

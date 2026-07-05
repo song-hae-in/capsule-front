@@ -62,6 +62,26 @@ export function addDaysFromToday(days: number): Date {
   return date;
 }
 
+export function addMonthsFromToday(months: number): Date {
+  const date = startOfToday();
+  date.setMonth(date.getMonth() + months);
+  return date;
+}
+
+export function addYearsFromToday(years: number): Date {
+  const date = startOfToday();
+  date.setFullYear(date.getFullYear() + years);
+  return date;
+}
+
+export function isSameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
 export function daysFromToday(date: Date): number {
   const start = startOfToday().getTime();
   const target = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();

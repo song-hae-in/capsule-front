@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,9 +7,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Slider } from '@/components/ui/slider';
 import {
   addDaysFromToday,
+  addMonthsFromToday,
+  addYearsFromToday,
   buildUnlockAt,
   daysFromToday,
   formatUnlockDisplay,
+  isSameDay,
   isUnlockInFuture,
   parseUnlockAt,
   startOfToday,
@@ -20,6 +23,18 @@ import { WizardStepShell } from './wizard-step-shell';
 const MIN_DAYS = 0;
 const MAX_DAYS = 365;
 const MINUTE_STEP = 15;
+/** dropdown caption의 연도 범위 — 지정하지 않으면 현재 연도까지만 표시됨 */
+const MAX_YEARS_AHEAD = 10;
+
+/** 자주 쓰는 unlock 시점 프리셋 — 클릭 시 해당 날짜로 점프 후 캘린더에서 미세 조정 */
+const UNLOCK_PRESETS: { label: string; getDate: () => Date }[] = [
+  { label: '1 week', getDate: () => addDaysFromToday(7) },
+  { label: '1 month', getDate: () => addMonthsFromToday(1) },
+  { label: '6 months', getDate: () => addMonthsFromToday(6) },
+  { label: '1 year', getDate: () => addYearsFromToday(1) },
+  { label: '5 years', getDate: () => addYearsFromToday(5) },
+  { label: '10 years', getDate: () => addYearsFromToday(10) },
+];
 
 function firstSliderValue(value: number | readonly number[]): number {
   if (typeof value === 'number') return value;
@@ -41,8 +56,10 @@ export default function SetUnlockDateStep({
   const days = daysFromToday(date);
   const isConfirmed = unlock.unlockConfirmed === true;
   const canConfirm = isUnlockInFuture(unlock.unlockAt) && !disabled;
+  const [month, setMonth] = useState<Date>(date);
 
   const updateUnlock = (nextDate: Date, nextHour: number, nextMinute: number) => {
+    setMonth(nextDate);
     onUnlockChange({
       ...unlock,
       unlockAt: buildUnlockAt(nextDate, nextHour, nextMinute),
@@ -69,12 +86,38 @@ export default function SetUnlockDateStep({
             <CardTitle className="text-base">Unlock date</CardTitle>
             {isConfirmed ? <Badge variant="outline">Confirmed</Badge> : null}
           </div>
-          <CardDescription>Pick a day on the calendar or adjust with the slider.</CardDescription>
+          <CardDescription>
+            Jump with a preset, pick a day on the calendar, or adjust with the slider.
+          </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-4">
+          <div className="flex w-full flex-wrap justify-center gap-1.5">
+            {UNLOCK_PRESETS.map((preset) => {
+              const isActive = isSameDay(preset.getDate(), date);
+              return (
+                <Button
+                  key={preset.label}
+                  type="button"
+                  size="sm"
+                  variant={isActive ? 'default' : 'outline'}
+                  className="h-7 rounded-full px-3 text-xs"
+                  disabled={disabled}
+                  onClick={() => updateUnlock(preset.getDate(), hour, minute)}
+                >
+                  {preset.label}
+                </Button>
+              );
+            })}
+          </div>
+
           <Calendar
+            captionLayout="dropdown"
             disabled={disabled ? true : { before: startOfToday() }}
+            endMonth={new Date(new Date().getFullYear() + MAX_YEARS_AHEAD, 11)}
             mode="single"
+            month={month}
+            startMonth={startOfToday()}
+            onMonthChange={setMonth}
             onSelect={(selected) => {
               if (!selected) return;
               updateUnlock(selected, hour, minute);

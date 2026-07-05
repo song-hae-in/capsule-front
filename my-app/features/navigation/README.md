@@ -64,6 +64,8 @@ AppLayout (layout) → AppNav (navigation) → Outlet → pages
 - nav 항목: **Create**, **List** (`route-config` `showInNav`)
 - 드롭다운 항목 hover → `HoverCard`로 `navInfo` 표시
 - 선택 시 `react-router` navigate
+- **Create 가드** — 지갑 미연결 시 이동하지 않고 toast만 표시.
+  (이동 후 `RequireWallet`이 되돌리면 현재 페이지가 재마운트되어 랜딩 3D가 재로딩되므로 이동 자체를 차단)
 
 ### `nav-links.tsx`
 
@@ -109,5 +111,6 @@ AppLayout (layout) → AppNav (navigation) → Outlet → pages
 
 - [ ] 모바일 햄버거 + 드로어
 - [x] wallet web3 연동 (wagmi + MetaMask)
-- [ ] nav auth 필터 (`route-config` metadata 활용)
+- [x] Create 지갑 가드 (`nav-action-search` + `RequireWallet`)
+- [ ] nav auth 필터 일반화 (`route-config` metadata 활용)
 - [ ] chainId별 explorer URL
