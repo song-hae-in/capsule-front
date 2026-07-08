@@ -158,6 +158,23 @@ status: ready_to_seal (progress bar 없음)
 
 ---
 
+## List 페이지 — 캡슐 확인
+
+Seal 후 캡슐은 List(`/capsules`)에서 확인한다. 데이터 소스는 `use-my-capsules`가 결정:
+
+| 모드 | 조건 | 소스 |
+|------|------|------|
+| mock | `TIME_CAPSULE_ADDRESS` 미설정 (현재) | Seal 성공 시 localStorage에 저장한 기록 (`capsule-store.ts`, 지갑 주소별) |
+| onchain | `src/config/timecapsule.ts`에 배포 주소 입력 | `getMyCapsules()` view 호출 (msg.sender 기반이라 `account` 전달) + localStorage를 design·파일 수 enrichment 캐시로 사용 |
+
+컨트랙트: [blockcapsule/contracts `TimeCapsule.sol`](https://github.com/jjaehyun2/blockcapsule/tree/main/contracts) — `createCapsule(ipfsHash, unlockTime)` · `getMyCapsules()` · `openCapsule(id)`
+
+상태 뱃지 판정 (`capsule-summary.ts`): `isOpened` → **Opened** · `now >= unlockAt` → **Ready to open** · 그 외 → **Locked**
+
+주의: `capsules` mapping이 public이라 `ipfsHash`(metadataCid)는 unlock 전에도 조회 가능 → metadata 내 콘텐츠는 클라이언트 암호화 필수, 공개 필드(unlockAt, design)만 평문.
+
+---
+
 ## 실패 복구
 
 | 조건 | 동작 |
@@ -194,6 +211,15 @@ status: ready_to_seal (progress bar 없음)
 - [x] `RequireWallet` — 지갑 미연결 시 `/capsules/create` 접근 차단 (`/`로 redirect + toast)
 - [x] nav(`nav-action-search`)·landing CTA — 미연결 시 이동 자체를 차단 (랜딩 3D 재마운트 방지)
 
+### List 페이지
+- [x] `use-my-capsules` — localStorage mock ↔ 온체인 `getMyCapsules` 전환 구조
+- [x] Seal 성공 시 localStorage 기록 (`capsule-store.ts`)
+- [x] 카드 UI + 상태 뱃지 (Locked / Ready to open / Opened)
+- [x] `TIME_CAPSULE_ADDRESS` 입력 — Sepolia `0x2dE53fd4ca1ff5a7705faDC2b65576DD1d76bc0d` → 온체인 모드
+- [x] Seal 트랜잭션을 실제 `createCapsule` 호출로 교체 (`useWriteContract` + receipt 대기)
+- [ ] metadataCid로 IPFS metadata fetch (파일·metadata IPFS는 아직 mock)
+- [ ] 캡슐 상세 / `openCapsule` 개봉 플로우
+
 ---
 
 ## 파일 구조
@@ -221,12 +247,17 @@ features/capsules/
 ├── hooks/
 │   ├── use-memory-files.ts          # 로컬 버퍼 + Seal 시 IPFS API
 │   ├── use-create-capsule.ts        # buffer·design·unlock + seal 파이프라인
-│   └── use-create-capsule-wizard.ts # 스텝 이동·가드
+│   ├── use-create-capsule-wizard.ts # 스텝 이동·가드
+│   └── use-my-capsules.ts           # List 데이터 (onchain ↔ localStorage 전환)
 ├── lib/
 │   ├── mock-ipfs-upload.ts
 │   ├── mock-seal-pipeline.ts        # metadata pin · 서명 · 온체인 mock
+│   ├── capsule-store.ts             # Seal 기록 localStorage 저장소
 │   └── unlock-date.ts               # 날짜 헬퍼 (프리셋·포맷)
 └── types/
     ├── memory-upload.ts
-    └── create-capsule.ts            # CapsuleBuffer · UnlockRule · Design
+    ├── create-capsule.ts            # CapsuleBuffer · UnlockRule · Design
+    └── capsule-summary.ts           # List용 요약 + 상태 판정
+
+src/config/timecapsule.ts            # TimeCapsule ABI + 배포 주소 (여기에 주소 입력 시 온체인 전환)
 ```

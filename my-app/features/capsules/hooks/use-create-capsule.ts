@@ -1,6 +1,16 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
+import { useWriteContract } from 'wagmi';
+import { waitForTransactionReceipt } from 'wagmi/actions';
+import { sepolia } from 'wagmi/chains';
+import {
+  isOnchainEnabled,
+  TIME_CAPSULE_ABI,
+  TIME_CAPSULE_ADDRESS,
+} from '@/config/timecapsule';
+import { wagmiConfig } from '@/config/wagmi';
 import { useWallet } from '@/hooks/use-wallet';
+import { saveLocalCapsule } from '../lib/capsule-store';
 import {
   mockPinMetadata,
   mockRequestWalletSignature,
@@ -35,7 +45,8 @@ function toFileCidRefs(files: MemoryFile[]): FileCidRef[] {
 }
 
 export function useCreateCapsule() {
-  const { isConnected } = useWallet();
+  const { isConnected, wallet } = useWallet();
+  const { writeContractAsync } = useWriteContract();
   const memory = useMemoryFiles();
   const { files, uploadAllToIpfs, markAllSealed, retryUpload } = memory;
 
@@ -89,6 +100,8 @@ export function useCreateCapsule() {
 
   const submitOnchain = useCallback(
     async (metadataCid: string) => {
+      const onchain = isOnchainEnabled();
+
       setBuffer((prev) => ({
         ...prev,
         onchain: { status: 'awaiting_signature', error: undefined },
@@ -96,8 +109,22 @@ export function useCreateCapsule() {
 
       toast.message('Confirm the transaction in MetaMask');
 
+      // 1) 서명 단계 — 실제: MetaMask에서 createCapsule 서명·전송 / mock: 대기 시뮬레이션
+      let txHash: string | undefined;
       try {
-        await mockRequestWalletSignature();
+        if (onchain) {
+          const unlockDate = unlock.unlockAt ? new Date(unlock.unlockAt) : new Date();
+          // chainId 명시 — 지갑이 다른 네트워크에 있으면 서명 전에 Sepolia 전환 요청
+          txHash = await writeContractAsync({
+            abi: TIME_CAPSULE_ABI,
+            address: TIME_CAPSULE_ADDRESS as `0x${string}`,
+            chainId: sepolia.id,
+            functionName: 'createCapsule',
+            args: [metadataCid, BigInt(Math.floor(unlockDate.getTime() / 1000))],
+          });
+        } else {
+          await mockRequestWalletSignature();
+        }
       } catch {
         setBuffer((prev) => ({
           ...prev,
@@ -109,16 +136,41 @@ export function useCreateCapsule() {
 
       setBuffer((prev) => ({
         ...prev,
-        onchain: { status: 'submitting' },
+        onchain: { status: 'submitting', txHash },
       }));
 
+      // 2) 컨펌 단계 — 실제: receipt 대기 / mock: 가짜 txHash 생성
       try {
-        const txHash = await mockSubmitOnchainRecord(metadataCid);
+        if (onchain) {
+          await waitForTransactionReceipt(wagmiConfig, {
+            chainId: sepolia.id,
+            hash: txHash as `0x${string}`,
+          });
+        } else {
+          txHash = await mockSubmitOnchainRecord(metadataCid);
+        }
+
         setBuffer((prev) => ({
           ...prev,
           onchain: { status: 'confirmed', txHash },
         }));
         markAllSealed();
+
+        // List 페이지용 기록 — mock 모드에선 유일한 소스, 온체인 모드에선 design 등 enrichment 캐시
+        if (wallet.address) {
+          saveLocalCapsule({
+            id: `local-${Date.now()}`,
+            owner: wallet.address,
+            metadataCid,
+            txHash,
+            unlockAt: unlock.unlockAt ?? new Date().toISOString(),
+            createdAt: new Date().toISOString(),
+            design,
+            fileCount: files.length,
+            isOpened: false,
+          });
+        }
+
         toast.success('Capsule sealed on-chain');
       } catch {
         setBuffer((prev) => ({
@@ -129,7 +181,7 @@ export function useCreateCapsule() {
         throw new Error('On-chain record failed');
       }
     },
-    [markAllSealed],
+    [design, files.length, markAllSealed, unlock.unlockAt, wallet.address, writeContractAsync],
   );
 
   const sealCapsule = useCallback(async () => {
