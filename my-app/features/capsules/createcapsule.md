@@ -217,8 +217,12 @@ Seal 후 캡슐은 List(`/capsules`)에서 확인한다. 데이터 소스는 `us
 - [x] 카드 UI + 상태 뱃지 (Locked / Ready to open / Opened)
 - [x] `TIME_CAPSULE_ADDRESS` 입력 — Sepolia `0x2dE53fd4ca1ff5a7705faDC2b65576DD1d76bc0d` → 온체인 모드
 - [x] Seal 트랜잭션을 실제 `createCapsule` 호출로 교체 (`useWriteContract` + receipt 대기)
-- [ ] metadataCid로 IPFS metadata fetch (파일·metadata IPFS는 아직 mock)
-- [ ] 캡슐 상세 / `openCapsule` 개봉 플로우
+- [x] Pinata 실제 IPFS 업로드 (`ipfs-upload.ts` 파일 / `seal-pipeline.ts` metadata) — `.env`에 `VITE_PINATA_*` 키 필요
+- [x] `openCapsule` 개봉 플로우 (`use-open-capsule.ts` + List 카드 개봉 버튼)
+- [x] 캡슐 상세 `/capsules/:id` (`capsule-detail-page.tsx`) — `getCapsule` 조회 · 개봉 · 개봉 후 IPFS 콘텐츠 열람 (`ipfs-gateway.ts`)
+- [ ] List enrichment(design·파일 수)를 게이트웨이 조회로 교체 (현재 localStorage 캐시)
+- [ ] 클라이언트 암호화 — 실제 CID가 올라가므로 unlock 전 metadata 노출 이슈 유효
+- [ ] Pinata Secret 프론트 노출 (`VITE_*`는 번들에 포함) — 배포 전 JWT/프록시로 교체
 
 ---
 

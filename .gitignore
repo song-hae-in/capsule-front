@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# 환경변수 (Pinata 키 등) — .env.example만 커밋
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

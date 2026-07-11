@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { mockPinToIpfs } from '../lib/mock-ipfs-upload';
+import { pinFileToIpfs } from '../lib/ipfs-upload';
 import {
   createMemoryFile,
   validateMemoryFile,
@@ -23,6 +23,8 @@ type UseMemoryFilesOptions = {
 export function useMemoryFiles({ maxFileSize = DEFAULT_MAX_FILE_SIZE }: UseMemoryFilesOptions = {}) {
   const [files, setFiles] = useState<MemoryFile[]>([]);
   const activeUploadsRef = useRef<Set<string>>(new Set());
+  // 언마운트 시 preview URL 정리를 위한 최신 files 참조
+  const filesRef = useRef<MemoryFile[]>([]);
 
   const updateFileSeal = useCallback((id: string, patch: Partial<MemoryFile['seal']>) => {
     setFiles((prev) =>
@@ -44,7 +46,7 @@ export function useMemoryFiles({ maxFileSize = DEFAULT_MAX_FILE_SIZE }: UseMemor
       updateFileSeal(id, { status: 'uploading', progress: 0, error: undefined });
 
       try {
-        const cid = await mockPinToIpfs(file, (progress) => {
+        const cid = await pinFileToIpfs(file, (progress) => {
           updateFileSeal(id, { progress });
         });
 
@@ -170,13 +172,19 @@ export function useMemoryFiles({ maxFileSize = DEFAULT_MAX_FILE_SIZE }: UseMemor
     );
   }, []);
 
+  useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
+
+  // 언마운트 시에만 전체 revoke — files 변경마다 실행하면
+  // 표시 중인 썸네일의 blob URL이 해제되어 ERR_FILE_NOT_FOUND 발생
   useEffect(
     () => () => {
-      for (const item of files) {
+      for (const item of filesRef.current) {
         if (item.previewUrl) URL.revokeObjectURL(item.previewUrl);
       }
     },
-    [files],
+    [],
   );
 
   return {

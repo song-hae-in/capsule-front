@@ -1,5 +1,6 @@
 import type { RouteObject } from 'react-router-dom';
 import RequireWallet from '../../features/capsules/components/require-wallet';
+import CapsuleDetailPage from '../../features/capsules/pages/capsule-detail-page';
 import CreateCapsulePage from '../../features/capsules/pages/create-capsule-page';
 import ListCapsulePage from '../../features/capsules/pages/list-capsule-page';
 import LandingPage from '../../features/landing/pages/landing-page';
@@ -37,6 +38,12 @@ export const APP_ROUTES: AppRouteConfig[] = [
     navInfo: '만든 캡슐과 상태(잠김 / 열림)를 확인합니다.',
     element: <ListCapsulePage />,
     showInNav: true,
+  },
+  {
+    path: '/capsules/:id',
+    label: 'Capsule',
+    element: <CapsuleDetailPage />,
+    showInNav: false,
   },
 ];
 

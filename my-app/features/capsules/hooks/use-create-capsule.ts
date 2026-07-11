@@ -12,10 +12,10 @@ import { wagmiConfig } from '@/config/wagmi';
 import { useWallet } from '@/hooks/use-wallet';
 import { saveLocalCapsule } from '../lib/capsule-store';
 import {
-  mockPinMetadata,
-  mockRequestWalletSignature,
-  mockSubmitOnchainRecord,
-} from '../lib/mock-seal-pipeline';
+  pinMetadata as realPinMetadata,
+  requestWalletSignature as mockRequestWalletSignature,
+  submitOnchainRecord as mockSubmitOnchainRecord,
+} from '../lib/seal-pipeline';
 import {
   DEFAULT_CAPSULE_DESIGN,
   INITIAL_CAPSULE_BUFFER,
@@ -77,7 +77,7 @@ export function useCreateCapsule() {
           createdAt: new Date().toISOString(),
         };
 
-        const metadataCid = await mockPinMetadata(payload);
+        const metadataCid = await realPinMetadata(payload);
         setBuffer((prev) => ({
           ...prev,
           ipfs: { status: 'ready', metadataCid },

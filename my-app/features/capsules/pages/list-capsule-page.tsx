@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { FlaskConical, Lock, LockOpen, PackageOpen, Plus, RefreshCw } from 'lucide-react';
+import { FlaskConical, Loader2, Lock, LockOpen, PackageOpen, Plus, RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import {
@@ -12,6 +12,7 @@ import {
 import { CREATE_CAPSULE_PATH } from '@/routes';
 import { useWallet } from '@/hooks/use-wallet';
 import { useMyCapsules } from '../hooks/use-my-capsules';
+import { useOpenCapsule } from '../hooks/use-open-capsule';
 import { formatUnlockDisplay } from '../lib/unlock-date';
 import {
   CAPSULE_STATE_LABELS,
@@ -38,7 +39,7 @@ function truncateMiddle(value: string, head = 10, tail = 6): string {
   return `${value.slice(0, head)}…${value.slice(-tail)}`;
 }
 
-function CapsuleCard({ capsule }: { capsule: CapsuleSummary }) {
+function CapsuleCard({ capsule, onOpen, isOpening }: { capsule: CapsuleSummary; onOpen: (id: string) => void; isOpening: boolean }) {
   const state = getCapsuleState(capsule);
   const StateIcon = STATE_ICONS[state];
 
@@ -72,6 +73,42 @@ function CapsuleCard({ capsule }: { capsule: CapsuleSummary }) {
             TX {truncateMiddle(capsule.txHash)}
           </p>
         ) : null}
+        {state === 'unlockable' ? (
+          <Button
+            size="sm"
+            className="mt-2 w-full gap-1.5"
+            disabled={isOpening}
+            onClick={() => onOpen(capsule.id)}
+          >
+            {isOpening ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin" />
+                개봉 중…
+              </>
+            ) : (
+              <>
+                <LockOpen className="size-3.5" />
+                캡슐 개봉하기
+              </>
+            )}
+          </Button>
+        ) : null}
+        {state === 'opened' ? (
+          <Link
+            className={`${buttonVariants({ variant: 'outline', size: 'sm' })} mt-2 w-full gap-1.5`}
+            to={`/capsules/${capsule.id}`}
+          >
+            <PackageOpen className="size-3.5" />
+            콘텐츠 열람
+          </Link>
+        ) : (
+          <Link
+            className="block pt-1 text-xs text-muted-foreground hover:text-foreground"
+            to={`/capsules/${capsule.id}`}
+          >
+            상세 보기 →
+          </Link>
+        )}
       </CardContent>
     </Card>
   );
@@ -80,6 +117,13 @@ function CapsuleCard({ capsule }: { capsule: CapsuleSummary }) {
 export default function ListCapsulePage() {
   const { isConnected, connect, isConnecting } = useWallet();
   const { capsules, isLoading, isError, refetch, source } = useMyCapsules();
+  const { openCapsule, status: openStatus } = useOpenCapsule();
+  const isOpening = openStatus === 'awaiting_signature' || openStatus === 'submitting';
+
+  const handleOpen = async (id: string) => {
+    await openCapsule(id);
+    refetch();
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-24 sm:px-6">
@@ -140,7 +184,7 @@ export default function ListCapsulePage() {
       ) : (
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           {capsules.map((capsule) => (
-            <CapsuleCard capsule={capsule} key={capsule.id} />
+            <CapsuleCard capsule={capsule} key={capsule.id} onOpen={handleOpen} isOpening={isOpening} />
           ))}
         </div>
       )}
